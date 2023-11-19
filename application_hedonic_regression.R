@@ -504,6 +504,8 @@ risk_table <-
       )
   }
 
+# Application results ----------------------------------------------------------
+
 coef_table(0.1)
 coef_table(0.3)
 coef_table(0.5)
@@ -514,5 +516,5 @@ coef_table(0.75)
 coef_table(0.25)
 
 risk_table(seq(0.1, 0.9, 0.2))
-highdim(c(0.25, 0.75))
+highdim(c(0.25, 0.5, 0.75))
 
