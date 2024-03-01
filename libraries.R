@@ -1,18 +1,17 @@
 # Packages ---------------------------------------------------------------------
 
-# install.packages("quantreg")
-# install.packages("mboost")
-# install.packages("glmulti")
-# install.packages("purrr")
-# install.packages("magrittr")
-# install.packages("dplyr")
-# install.packages("kableExtra")
-# install.packages("stringr")
-# install.packages("knitr")
-
-# install.packages("devtools")
-# devtools::install_github("stefanlinner/boostrq")
-# devtools::install_github("stefanlinner/tidyMC")
+install.packages("quantreg")
+install.packages("mboost")
+install.packages("glmulti")
+install.packages("purrr")
+install.packages("magrittr")
+install.packages("dplyr")
+install.packages("kableExtra")
+install.packages("stringr")
+install.packages("knitr")
+install.packages("tidyMC")
+install.packages("devtools")
+devtools::install_github("stefanlinner/boostrq")
 
 
 library(quantreg)
@@ -24,6 +23,5 @@ library(dplyr)
 library(kableExtra)
 library(stringr)
 library(knitr)
-
 library(boostrq)
 library(tidyMC)

@@ -4,6 +4,8 @@ source("libraries.R", encoding = "UTF-8")
 source("simulation_setups.R", encoding = "UTF-8")
 
 
+revision <- TRUE # FALSE for original results
+
 # simulation parameter combinations --------------------------------------------
 
 parameter_combinations <- 
@@ -40,28 +42,56 @@ parameter_combinations_boosting <-
 
 # test data --------------------------------------------------------------------
 
-test_data <- 
-  map(
-    seq_len(nrow(parameter_combinations_df)),
-    function(row){
-      sim[[parameter_combinations_df[row, "setup"]]]$data_gen(
-        seed = 101, 
-        n = 1000, 
-        error = parameter_combinations_df[row, "error"], 
-        tau = parameter_combinations_df[row, "tau"], 
-        contaminated = parameter_combinations_df[row, "contaminated"]
+if(!revision){
+  test_data <- 
+    map(
+      seq_len(nrow(parameter_combinations_df)),
+      function(row){
+        sim[[parameter_combinations_df[row, "setup"]]]$data_gen(
+          seed = 101, 
+          n = 1000, 
+          error = parameter_combinations_df[row, "error"], 
+          tau = parameter_combinations_df[row, "tau"], 
+          contaminated = parameter_combinations_df[row, "contaminated"],
+          revision = revision
+        )
+      }
+    ) %>% 
+    set_names(
+      paste(
+        parameter_combinations_df[["setup"]],
+        parameter_combinations_df[["error"]],
+        parameter_combinations_df[["tau"]],
+        parameter_combinations_df[["contaminated"]], 
+        sep = ","
       )
-    }
-  ) %>% 
-  set_names(
-    paste(
-      parameter_combinations_df[["setup"]],
-      parameter_combinations_df[["error"]],
-      parameter_combinations_df[["tau"]],
-      parameter_combinations_df[["contaminated"]], 
-      sep = ","
     )
-  )
+} else {
+  test_data <- 
+    map(
+      seq_len(nrow(parameter_combinations_df)),
+      function(row){
+        sim[[parameter_combinations_df[row, "setup"]]]$data_gen(
+          seed = 101, 
+          n = 100, 
+          error = parameter_combinations_df[row, "error"], 
+          tau = parameter_combinations_df[row, "tau"], 
+          contaminated = parameter_combinations_df[row, "contaminated"],
+          revision = revision
+        )
+      }
+    ) %>% 
+    set_names(
+      paste(
+        parameter_combinations_df[["setup"]],
+        parameter_combinations_df[["error"]],
+        parameter_combinations_df[["tau"]],
+        parameter_combinations_df[["contaminated"]], 
+        sep = ","
+      )
+    )
+}
+
 
 
 # simulation functions ---------------------------------------------------------
@@ -77,7 +107,8 @@ sim_fun_al1brq <- function(
     exact.fit, 
     contaminated,
     sim_param, 
-    test_data
+    test_data, 
+    revision
 ){
   
   if(init == 0){
@@ -106,7 +137,8 @@ sim_fun_al1brq <- function(
     n = n, 
     error = error, 
     tau = tau, 
-    contaminated = contaminated
+    contaminated = contaminated,
+    revision = revision
   )
   
   brq.model <- 
@@ -200,11 +232,22 @@ sim_fun_l2brq <-
     exact.fit, 
     contaminated,
     sim_param, 
-    test_data
+    test_data, 
+    revision
   ){
     
-    if(init == 0){
+    if(init == 0 & !revision){
       init <- 0.5
+    } 
+    
+    if(init == 0 & revision){
+      init <- tau
+    }
+    
+    if(revision){
+      nu <- -0.05 * abs(tau - 0.5) + 0.11
+    } else {
+      nu <- 0.1
     }
     
     test.data <- test_data[[paste(setup, error, tau, contaminated, sep = ",")]]
@@ -231,7 +274,8 @@ sim_fun_l2brq <-
         n = n, 
         error = error, 
         tau = tau, 
-        contaminated = contaminated
+        contaminated = contaminated,
+        revision = revision
       )
     
     qb.model <- 
@@ -317,7 +361,8 @@ sim_fun_rq <-
     error,
     tau,
     contaminated,
-    sim_param
+    sim_param,
+    revision
   ){
     
     n <-  sim_param[[setup]]$n
@@ -332,7 +377,8 @@ sim_fun_rq <-
       n = n,
       error = error, 
       tau = tau, 
-      contaminated = contaminated
+      contaminated = contaminated,
+      revision = revision 
     )
     
     rq.model <- 
@@ -351,7 +397,6 @@ sim_fun_rq <-
         map(.f = function(.z) .z)
     ) %>% 
       set_names(c(beta_names))
-    
     
     coefs_rq_bs <- NULL
     
@@ -410,7 +455,8 @@ get_sample_data <-
     tau,
     init,
     contaminated,
-    sim_param
+    sim_param,
+    revision
   ) {
     
     n <-  sim_param[[setup]]$n
@@ -420,7 +466,8 @@ get_sample_data <-
         n = n, 
         error = error, 
         tau = tau, 
-        contaminated = contaminated
+        contaminated = contaminated,
+        revision = revision
       )
     
     train.data
@@ -439,10 +486,11 @@ sim_al1brq <-
     nu = NULL,
     exact.fit = FALSE,
     sim_param = sim,
-    test_data = test_data
+    test_data = test_data, 
+    revision = revision
   )
 
-saveRDS(sim_al1brq, "simulation_output/simulation_results_al1brq.RDS")
+saveRDS(sim_al1brq, "simulation_results_al1brq.RDS")
 rm(sim_al1brq)
 
 set.seed(123)
@@ -452,51 +500,55 @@ sim_l2brq <-
     repetitions = 100,
     param_table = parameter_combinations_boosting,
     check = FALSE,
-    nu = 0.1,
+    nu = NULL,
     exact.fit = FALSE,
     sim_param = sim,
-    test_data = test_data
+    test_data = test_data, 
+    revision = revision
   )
 
-saveRDS(sim_l2brq, "simulation_output/simulation_results_l2brq.RDS")
+saveRDS(sim_l2brq, "simulation_results_l2brq.RDS")
 rm(sim_l2brq)
 
-set.seed(123)
-sim_rq <-
-  future_mc(
-    fun = sim_fun_rq,
-    repetitions = 100,
-    param_list =  parameter_combinations,
-    check = FALSE,
-    sim_param = sim,
-    parallel = FALSE
-  )
-
-saveRDS(sim_rq, "simulation_output/simulation_results_rq.RDS")
-rm(sim_rq)
-
-set.seed(123)
-sim_sample_data_boosting <-
-  future_mc(
-    fun = get_sample_data,
-    repetitions = 100,
-    param_table = parameter_combinations_boosting,
-    check = FALSE,
-    sim_param = sim
-  )
-saveRDS(sim_sample_data_boosting, "simulation_output/boosting_sample_data.RDS")
-rm(sim_sample_data_boosting)
-
-set.seed(123)
-sim_sample_data_rq <-
-  future_mc(
-    fun = get_sample_data,
-    repetitions = 100,
-    param_list = parameter_combinations,
-    check = FALSE,
-    sim_param = sim,
-    init = 0,
-    parallel = FALSE
-  )
-saveRDS(sim_sample_data_rq, "simulation_output/rq_sample_data.RDS")
-rm(sim_sample_data_rq)
+# set.seed(123)
+# sim_rq <-
+#   future_mc(
+#     fun = sim_fun_rq,
+#     repetitions = 100,
+#     param_list =  parameter_combinations,
+#     check = FALSE,
+#     sim_param = sim,
+#     parallel = FALSE, 
+#     revision = revision
+#   )
+# 
+# saveRDS(sim_rq, "simulation_output/simulation_results_rq.RDS")
+# rm(sim_rq)
+# 
+# set.seed(123)
+# sim_sample_data_boosting <-
+#   future_mc(
+#     fun = get_sample_data,
+#     repetitions = 100,
+#     param_table = parameter_combinations_boosting,
+#     check = FALSE,
+#     sim_param = sim, 
+#     revision = revision
+#   )
+# saveRDS(sim_sample_data_boosting, "simulation_output/boosting_sample_data.RDS")
+# rm(sim_sample_data_boosting)
+# 
+# set.seed(123)
+# sim_sample_data_rq <-
+#   future_mc(
+#     fun = get_sample_data,
+#     repetitions = 100,
+#     param_list = parameter_combinations,
+#     check = FALSE,
+#     sim_param = sim,
+#     init = 0,
+#     parallel = FALSE, 
+#     revision = revision
+#   )
+# saveRDS(sim_sample_data_rq, "simulation_output/rq_sample_data.RDS")
+# rm(sim_sample_data_rq)

@@ -10,7 +10,7 @@ sim <-
       alpha = c(4, 0),
       n = 200,
       p = 2,
-      data_gen = function(seed = NULL, n, error, tau, contaminated) {
+      data_gen = function(seed = NULL, n, error, tau, contaminated, revision) {
         beta <- c(3, 1)
         alpha <- c(4, 0)
         
@@ -39,8 +39,14 @@ sim <-
         X  <- matrix(c(rep(1, n), x1), nrow = n, dimnames = list(NULL, c("Int", "x1")))
         y  <- X %*% beta + as.vector((X %*% alpha)) * u
         
-        if(contaminated){
+        if(contaminated & !revision){
           y[which.max(y)] <- max(y) * 10
+        }
+        
+        if(contaminated & revision){
+          n_contaminated <- n * 0.025
+          y[order(y, decreasing = TRUE)[1:n_contaminated]] <-
+            y[order(y, decreasing = TRUE)[1:n_contaminated]] * 10
         }
         
         dat <- 
@@ -69,7 +75,7 @@ sim <-
       alpha = c(4, 1),
       n = 200,
       p = 2,
-      data_gen = function(seed = NULL, n, error, tau, contaminated) {
+      data_gen = function(seed = NULL, n, error, tau, contaminated, revision) {
         beta <- c(4, 2)
         alpha <- c(4, 1)
         
@@ -97,8 +103,14 @@ sim <-
         X  <- matrix(c(rep(1, n), x1), nrow = n, dimnames = list(NULL, c("Int", "x1")))
         y  <- X %*% beta + as.vector((X %*% alpha)) * u
         
-        if(contaminated){
+        if(contaminated & !revision){
           y[which.max(y)] <- max(y) * 10
+        }
+        
+        if(contaminated & revision){
+          n_contaminated <- n * 0.025
+          y[order(y, decreasing = TRUE)[1:n_contaminated]] <-
+            y[order(y, decreasing = TRUE)[1:n_contaminated]] * 10
         }
         
         dat <- 
@@ -127,7 +139,7 @@ sim <-
       alpha = c(1, 0, 2, 0, 1, 0, 0),
       n = 500,
       p = 7,
-      data_gen = function(seed = NULL, n, error, tau, contaminated) {
+      data_gen = function(seed = NULL, n, error, tau, contaminated, revision) {
         
         
         beta <- c(5, 8, -5, 2, -2, 0, 0)
@@ -171,8 +183,14 @@ sim <-
         
         y  <- X %*% beta + as.vector((X %*% alpha)) * u
         
-        if(contaminated){
+        if(contaminated & !revision){
           y[which.max(y)] <- max(y) * 10
+        }
+        
+        if(contaminated & revision){
+          n_contaminated <- n * 0.025
+          y[order(y, decreasing = TRUE)[1:n_contaminated]] <-
+            y[order(y, decreasing = TRUE)[1:n_contaminated]] * 10
         }
         
         dat <- 
@@ -225,7 +243,7 @@ sim <-
       alpha = c(1, 0, 2, 0, 1, rep(0, 95)),
       n = 200,
       p = 100,
-      data_gen = function(seed = NULL, n, error, tau, contaminated){
+      data_gen = function(seed = NULL, n, error, tau, contaminated, revision){
         
         beta <- c(5, 8, -5, 2, -2, rep(0, 95))
         alpha <- c(1, 0, 2, 0, 1, rep(0, 95))
@@ -268,8 +286,14 @@ sim <-
         
         y  <- X %*% beta + as.vector((X %*% alpha)) * u
         
-        if(contaminated){
+        if(contaminated & !revision){
           y[which.max(y)] <- max(y) * 10
+        }
+        
+        if(contaminated & revision){
+          n_contaminated <- n * 0.025
+          y[order(y, decreasing = TRUE)[1:n_contaminated]] <-
+            y[order(y, decreasing = TRUE)[1:n_contaminated]] * 10
         }
         
         dat <- 
@@ -328,7 +352,7 @@ sim <-
       alpha = c(1, 0, 2, 0, 1, 0, 0),
       n = 500,
       p = 7,
-      data_gen = function(seed = NULL, n, error, tau, contaminated) {
+      data_gen = function(seed = NULL, n, error, tau, contaminated, revision) {
         
         tau.vec <- c(0.1, 0.3, 0.5, 0.7, 0.9)
         beta.mat <-  matrix(
@@ -380,8 +404,14 @@ sim <-
         
         y  <- X %*% beta + as.vector((X %*% alpha)) * u
         
-        if(contaminated){
+        if(contaminated & !revision){
           y[which.max(y)] <- max(y) * 10
+        }
+        
+        if(contaminated & revision){
+          n_contaminated <- n * 0.025
+          y[order(y, decreasing = TRUE)[1:n_contaminated]] <-
+            y[order(y, decreasing = TRUE)[1:n_contaminated]] * 10
         }
         
         dat <- 
