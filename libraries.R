@@ -11,6 +11,7 @@ install.packages("stringr")
 install.packages("knitr")
 install.packages("tidyMC")
 install.packages("devtools")
+install.packages("here")
 devtools::install_github("stefanlinner/boostrq")
 
 
@@ -25,3 +26,4 @@ library(stringr)
 library(knitr)
 library(boostrq)
 library(tidyMC)
+library(here)

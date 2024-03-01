@@ -476,6 +476,8 @@ get_sample_data <-
 
 # simulation workers -----------------------------------------------------------
 
+saveRDS("test", here("simulation_output/test_save.RDS"))
+
 set.seed(123)
 sim_al1brq <-
   future_mc(
@@ -490,7 +492,7 @@ sim_al1brq <-
     revision = revision
   )
 
-saveRDS(sim_al1brq, "simulation_results_al1brq.RDS")
+saveRDS(sim_al1brq, here("simulation_output/simulation_results_rev_al1brq.RDS"))
 rm(sim_al1brq)
 
 set.seed(123)
@@ -507,7 +509,7 @@ sim_l2brq <-
     revision = revision
   )
 
-saveRDS(sim_l2brq, "simulation_results_l2brq.RDS")
+saveRDS(sim_l2brq, here("simulation_output/simulation_results_rev_l2brq.RDS"))
 rm(sim_l2brq)
 
 # set.seed(123)
