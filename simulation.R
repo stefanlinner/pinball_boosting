@@ -479,6 +479,8 @@ get_sample_data <-
 saveRDS("test", here("simulation_output/test_save.RDS"))
 message(future::availableCores())
 
+message("Al1brq")
+
 set.seed(123)
 sim_al1brq <-
   future_mc(
@@ -495,6 +497,8 @@ sim_al1brq <-
 
 saveRDS(sim_al1brq, here("simulation_output/simulation_results_rev_al1brq.RDS"))
 rm(sim_al1brq)
+
+message("l2brq")
 
 set.seed(123)
 sim_l2brq <-
@@ -528,18 +532,23 @@ rm(sim_l2brq)
 # saveRDS(sim_rq, "simulation_output/simulation_results_rq.RDS")
 # rm(sim_rq)
 # 
-# set.seed(123)
-# sim_sample_data_boosting <-
-#   future_mc(
-#     fun = get_sample_data,
-#     repetitions = 100,
-#     param_table = parameter_combinations_boosting,
-#     check = FALSE,
-#     sim_param = sim, 
-#     revision = revision
-#   )
-# saveRDS(sim_sample_data_boosting, "simulation_output/boosting_sample_data.RDS")
-# rm(sim_sample_data_boosting)
+
+message("data")
+
+set.seed(123)
+sim_sample_data_boosting <-
+  future_mc(
+    fun = get_sample_data,
+    repetitions = 100,
+    param_table = parameter_combinations_boosting,
+    check = FALSE,
+    sim_param = sim,
+    revision = revision
+  )
+saveRDS(sim_sample_data_boosting, here("simulation_output/boosting_sample_data_rev.RDS"))
+rm(sim_sample_data_boosting)
+
+message("done")
 # 
 # set.seed(123)
 # sim_sample_data_rq <-
