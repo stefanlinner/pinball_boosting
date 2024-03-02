@@ -477,6 +477,7 @@ get_sample_data <-
 # simulation workers -----------------------------------------------------------
 
 saveRDS("test", here("simulation_output/test_save.RDS"))
+message(future::availableCores())
 
 set.seed(123)
 sim_al1brq <-
