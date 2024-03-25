@@ -25,7 +25,7 @@ parameter_combinations_df <-
 parameter_combinations_boosting <- 
   parameter_combinations_df
 
-# parameter_combinations_boosting$init <- 0
+parameter_combinations_boosting$init <- 0
 # 
 # parameter_combinations_boosting <- 
 #   rbind(
