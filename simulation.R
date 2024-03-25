@@ -10,7 +10,10 @@ revision <- TRUE # FALSE for original results
 
 parameter_combinations <- 
   list(
-    setup = c("hom", "het", "multi", "highdim", "multi2"),
+    setup = c(
+      # "hom", "het", "multi", "highdim", 
+              "multi2"
+              ),
     error = c("norm", "tdist", "gamma", "mixed", "tdist_1"),
     tau = c(0.1, 0.3, 0.5, 0.7, 0.9),
     contaminated = c(TRUE, FALSE)
@@ -22,21 +25,21 @@ parameter_combinations_df <-
 parameter_combinations_boosting <- 
   parameter_combinations_df
 
-parameter_combinations_boosting$init <- 0
-
-parameter_combinations_boosting <- 
-  rbind(
-    parameter_combinations_boosting,
-    expand.grid(
-      list(
-        setup = "hom",
-        error = "norm",
-        tau = c(0.1, 0.3, 0.5, 0.7, 0.9), 
-        contaminated = c(TRUE, FALSE),
-        init = c(0.1, 0.3, 0.5, 0.7, 0.9)
-      )
-    )
-  )
+# parameter_combinations_boosting$init <- 0
+# 
+# parameter_combinations_boosting <- 
+#   rbind(
+#     parameter_combinations_boosting,
+#     expand.grid(
+#       list(
+#         setup = "hom",
+#         error = "norm",
+#         tau = c(0.1, 0.3, 0.5, 0.7, 0.9), 
+#         contaminated = c(TRUE, FALSE),
+#         init = c(0.1, 0.3, 0.5, 0.7, 0.9)
+#       )
+#     )
+#   )
 
 
 
@@ -495,7 +498,7 @@ sim_al1brq <-
     revision = revision
   )
 
-saveRDS(sim_al1brq, here("simulation_output/simulation_results_rev_al1brq.RDS"))
+saveRDS(sim_al1brq, here("simulation_output/simulation_results_2rev_al1brq.RDS"))
 rm(sim_al1brq)
 
 message("l2brq")
@@ -514,7 +517,7 @@ sim_l2brq <-
     revision = revision
   )
 
-saveRDS(sim_l2brq, here("simulation_output/simulation_results_rev_l2brq.RDS"))
+saveRDS(sim_l2brq, here("simulation_output/simulation_results_2rev_l2brq.RDS"))
 rm(sim_l2brq)
 
 # set.seed(123)
@@ -545,7 +548,7 @@ sim_sample_data_boosting <-
     sim_param = sim,
     revision = revision
   )
-saveRDS(sim_sample_data_boosting, here("simulation_output/boosting_sample_data_rev.RDS"))
+saveRDS(sim_sample_data_boosting, here("simulation_output/boosting_sample_data_2rev.RDS"))
 rm(sim_sample_data_boosting)
 
 message("done")

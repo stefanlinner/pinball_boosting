@@ -349,7 +349,7 @@ sim <-
         ), 
         byrow = TRUE, nrow = 5
       ), 
-      alpha = c(1, 0, 2, 0, 1, 0, 0),
+      alpha = c(1, 1, 2, 1, 1, 0, 0),
       n = 500,
       p = 7,
       data_gen = function(seed = NULL, n, error, tau, contaminated, revision) {
