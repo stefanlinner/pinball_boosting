@@ -2,6 +2,7 @@
 
 source("libraries.R", encoding = "UTF-8")
 
+revision <- TRUE
 
 # Reading data -----------------------------------------------------------------
 
@@ -320,13 +321,21 @@ coef_table <-
       mstop(al1brq) <- mstop(cvkbrq)
     }
     
+    if(revision){
+      offset <- tau
+      nu <- -0.05 * abs(tau - 0.5) + 0.11
+    } else {
+      offset <- 0.5
+      nu <- 0.1
+    }
+    
     l2brq <- mboost(
       log(sell) ~ drv + rec + ffin + ghw + ca + gar + 
         reg + log(lot) + bdms + fb + sty,
       data = dat, 
       baselearner = "bols",
-      family = QuantReg(tau = tau, qoffset = 0.5), 
-      control = boost_control(mstop = 200, nu = 0.1)
+      family = QuantReg(tau = tau, qoffset = offset), 
+      control = boost_control(mstop = 200, nu = nu)
     )
     
     set.seed(101)
@@ -336,6 +345,10 @@ coef_table <-
         grid = seq(10, 500, 10),
         folds = mboost::cv(model.weights(l2brq), type = "kfold", B = 5)
       )
+    
+    if(mstop(cvkl2) == 500){
+      stop("fail")
+    }
     
     mstop(l2brq) <- mstop(cvkl2)
     
@@ -441,13 +454,21 @@ risk_table <-
           risk_al1brq <- mean(cvkbrq[,as.character(mstop(cvkbrq))]) %>% round(3)
         }
         
+        if(revision){
+          offset <- tau
+          nu <- -0.05 * abs(tau - 0.5) + 0.11
+        } else {
+          offset <- 0.5
+          nu <- 0.1
+        }
+        
         l2brq <- mboost(
           log(sell) ~ drv + rec + ffin + ghw + ca + gar + 
             reg + log(lot) + bdms + fb + sty,
           data = dat, 
           baselearner = "bols",
-          family = QuantReg(tau = tau, qoffset = 0.5), 
-          control = boost_control(mstop = 200, nu = 0.1)
+          family = QuantReg(tau = tau, qoffset = offset), 
+          control = boost_control(mstop = 200, nu = nu)
         )
         
         set.seed(101)
@@ -457,6 +478,10 @@ risk_table <-
             grid = seq(10, 500, 10),
             folds = mboost::cv(model.weights(l2brq), type = "kfold", B = 5)
           )
+        
+        if(mstop(cvkl2) == 500){
+          stop("fail2")
+        }
         
         risk_l2brq <- mean(cvkl2[,as.character(mstop(cvkl2))]) %>% round(3)
         
@@ -506,15 +531,11 @@ risk_table <-
 
 # Application results ----------------------------------------------------------
 
-coef_table(0.1)
-coef_table(0.3)
-coef_table(0.5)
-coef_table(0.7)
-coef_table(0.9)
-
-coef_table(0.75)
 coef_table(0.25)
+coef_table(0.5)
+coef_table(0.75)
 
-risk_table(seq(0.1, 0.9, 0.2))
+
+risk_table(c(0.25, 0.5, 0.75))
 highdim(c(0.25, 0.5, 0.75))
 

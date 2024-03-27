@@ -158,6 +158,18 @@ risk_not_contaminated %>%
     )
   ) %>% 
   ungroup() %>% 
+  mutate(
+    `Parameter setup` = as.character(`Parameter setup`),
+    `Error distribution` = as.character(`Error distribution`)
+    ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, `Error distribution`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
   kbl("latex", escape = FALSE, linesep = "")
 
 risk_contaminated <- empirical_risk(.contaminated = TRUE)
