@@ -17,7 +17,7 @@
 
 library(quantreg)
 library(mboost)
-# library(glmulti)
+library(glmulti)
 library(purrr)
 library(magrittr)
 library(dplyr)

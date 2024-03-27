@@ -10,10 +10,7 @@ revision <- TRUE # FALSE for original results
 
 parameter_combinations <- 
   list(
-    setup = c(
-      # "hom", "het", "multi", "highdim", 
-              "multi2"
-              ),
+    setup = c("hom", "het", "multi", "highdim", "multi2"),
     error = c("norm", "tdist", "gamma", "mixed", "tdist_1"),
     tau = c(0.1, 0.3, 0.5, 0.7, 0.9),
     contaminated = c(TRUE, FALSE)
@@ -26,20 +23,20 @@ parameter_combinations_boosting <-
   parameter_combinations_df
 
 parameter_combinations_boosting$init <- 0
-# 
-# parameter_combinations_boosting <- 
-#   rbind(
-#     parameter_combinations_boosting,
-#     expand.grid(
-#       list(
-#         setup = "hom",
-#         error = "norm",
-#         tau = c(0.1, 0.3, 0.5, 0.7, 0.9), 
-#         contaminated = c(TRUE, FALSE),
-#         init = c(0.1, 0.3, 0.5, 0.7, 0.9)
-#       )
-#     )
-#   )
+
+parameter_combinations_boosting <-
+  rbind(
+    parameter_combinations_boosting,
+    expand.grid(
+      list(
+        setup = "hom",
+        error = "norm",
+        tau = c(0.1, 0.3, 0.5, 0.7, 0.9),
+        contaminated = c(TRUE, FALSE),
+        init = c(0.1, 0.3, 0.5, 0.7, 0.9)
+      )
+    )
+  )
 
 
 
@@ -479,10 +476,6 @@ get_sample_data <-
 
 # simulation workers -----------------------------------------------------------
 
-saveRDS("test", here("simulation_output/test_save.RDS"))
-message(future::availableCores())
-
-message("Al1brq")
 
 set.seed(123)
 sim_al1brq <-
@@ -498,10 +491,9 @@ sim_al1brq <-
     revision = revision
   )
 
-saveRDS(sim_al1brq, here("simulation_output/simulation_results_2rev_al1brq.RDS"))
+saveRDS(sim_al1brq, here("simulation_output/simulation_results_rev_al1brq.RDS"))
 rm(sim_al1brq)
 
-message("l2brq")
 
 set.seed(123)
 sim_l2brq <-
@@ -517,26 +509,24 @@ sim_l2brq <-
     revision = revision
   )
 
-saveRDS(sim_l2brq, here("simulation_output/simulation_results_2rev_l2brq.RDS"))
+saveRDS(sim_l2brq, here("simulation_output/simulation_results_rev_l2brq.RDS"))
 rm(sim_l2brq)
 
-# set.seed(123)
-# sim_rq <-
-#   future_mc(
-#     fun = sim_fun_rq,
-#     repetitions = 100,
-#     param_list =  parameter_combinations,
-#     check = FALSE,
-#     sim_param = sim,
-#     parallel = FALSE, 
-#     revision = revision
-#   )
-# 
-# saveRDS(sim_rq, "simulation_output/simulation_results_rq.RDS")
-# rm(sim_rq)
-# 
+set.seed(123)
+sim_rq <-
+  future_mc(
+    fun = sim_fun_rq,
+    repetitions = 100,
+    param_list =  parameter_combinations,
+    check = FALSE,
+    sim_param = sim,
+    parallel = FALSE,
+    revision = revision
+  )
 
-message("data")
+saveRDS(sim_rq, "simulation_output/simulation_results_rq.RDS")
+rm(sim_rq)
+
 
 set.seed(123)
 sim_sample_data_boosting <-
@@ -548,22 +538,21 @@ sim_sample_data_boosting <-
     sim_param = sim,
     revision = revision
   )
-saveRDS(sim_sample_data_boosting, here("simulation_output/boosting_sample_data_2rev.RDS"))
+saveRDS(sim_sample_data_boosting, here("simulation_output/boosting_sample_data_rev.RDS"))
 rm(sim_sample_data_boosting)
 
-message("done")
-# 
-# set.seed(123)
-# sim_sample_data_rq <-
-#   future_mc(
-#     fun = get_sample_data,
-#     repetitions = 100,
-#     param_list = parameter_combinations,
-#     check = FALSE,
-#     sim_param = sim,
-#     init = 0,
-#     parallel = FALSE, 
-#     revision = revision
-#   )
-# saveRDS(sim_sample_data_rq, "simulation_output/rq_sample_data.RDS")
-# rm(sim_sample_data_rq)
+
+set.seed(123)
+sim_sample_data_rq <-
+  future_mc(
+    fun = get_sample_data,
+    repetitions = 100,
+    param_list = parameter_combinations,
+    check = FALSE,
+    sim_param = sim,
+    init = 0,
+    parallel = FALSE,
+    revision = revision
+  )
+saveRDS(sim_sample_data_rq, "simulation_output/rq_sample_data.RDS")
+rm(sim_sample_data_rq)
