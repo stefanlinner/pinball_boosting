@@ -3,11 +3,18 @@
 source("libraries.R", encoding = "UTF-8")
 source("simulation_setups.R", encoding = "UTF-8")
 
+revision <- TRUE
 
 # Loading data -----------------------------------------------------------------
 
-sim_res_al1brq <- readRDS("simulation_output/simulation_results_al1brq.RDS")
-sim_res_l2brq <- readRDS("simulation_output/simulation_results_l2brq.RDS")
+if(revision){
+  sim_res_al1brq <- readRDS("simulation_output/simulation_results_rev_al1brq.RDS")
+  sim_res_l2brq <- readRDS("simulation_output/simulation_results_rev_l2brq.RDS")
+} else {
+  sim_res_al1brq <- readRDS("simulation_output/simulation_results_al1brq.RDS")
+  sim_res_l2brq <- readRDS("simulation_output/simulation_results_l2brq.RDS")
+}
+
 sim_res_rq <- readRDS("simulation_output/simulation_results_rq.RDS")
 
 quantile_risk <- function(y, f, tau){
@@ -16,7 +23,13 @@ quantile_risk <- function(y, f, tau){
   mean(loss)
 }
 
-revision <- FALSE
+unfill_vec <- function(x) {
+  same <- x == dplyr::lag(x)
+  ifelse(!is.na(same) & same, NA, x)
+}
+
+options(knitr.kable.NA = '')
+
 
 # Simulation results -----------------------------------------------------------
 
@@ -25,16 +38,16 @@ revision <- FALSE
 empirical_risk <- 
   function(.contaminated){
     map_dfr(
-      unique(sim_res_al1brq$parameter$setup), 
+      c("hom", "het", "multi", "multi2", "highdim"), 
       function(.setup){
         error_out <- map_dfr(
           unique(sim_res_al1brq$parameter$error),
           function(.error){
             
             if(.setup %in% c("multi", "multi2")){
-              methods <- c("AL1BRQ", "L2BRQ", "RQ", "RQAic")
+              methods <- c("QR-QR.Boost", "QR-LS.Boost", "RQ", "RQAic")
             } else {
-              methods <- c("AL1BRQ", "L2BRQ", "RQ")
+              methods <- c("QR-QR.Boost", "QR-LS.Boost", "RQ")
             }
             
             method_out <- map_dfr(
@@ -50,7 +63,7 @@ empirical_risk <-
                       X.validation <- data.validation[, -1] %>% as.matrix() %>% cbind(rep(1, 1000), .)
                       
                       
-                      if(.method == "AL1BRQ"){
+                      if(.method == "QR-QR.Boost"){
                         
                         results <- 
                           sim_res_al1brq$output %>% 
@@ -87,7 +100,7 @@ empirical_risk <-
                         return(out) 
                       }
                       
-                      if(.method == "L2BRQ"){
+                      if(.method == "QR-LS.Boost"){
                         
                         results <- 
                           sim_res_l2brq$output %>% 
@@ -222,16 +235,66 @@ empirical_risk <-
   }
 
 risk_not_contaminated <- empirical_risk(.contaminated = FALSE)
+
+risk_not_contaminated %>% 
+  filter(`Error distribution` != "tdist_1") %>% 
+  group_by(`Parameter setup`, `Error distribution`) %>% 
+  mutate(
+    across(
+      .cols = c(`0.1`, `0.3`, `0.5`, `0.7`, `0.9`),
+      .fns = function(.x){
+        if_else(.x == min(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+      }
+    )
+  ) %>% 
+  ungroup() %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, `Error distribution`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
+
 risk_contaminated <- empirical_risk(.contaminated = TRUE)
 
+risk_contaminated %>% 
+  filter(`Error distribution` != "tdist_1") %>% 
+  group_by(`Parameter setup`, `Error distribution`) %>% 
+  mutate(
+    across(
+      .cols = c(`0.1`, `0.3`, `0.5`, `0.7`, `0.9`),
+      .fns = function(.x){
+        if_else(.x == min(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+      }
+    )
+  ) %>% 
+  ungroup() %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, `Error distribution`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
 
 ## MSE -------------------------------------------------------------------------
-
+# \widehat{\beta}_{\tau 2}
 
 mse <- 
   function(.contaminated){
     map_dfr(
-      unique(sim_res_al1brq$parameter$setup), 
+      c("hom", "het", "multi", "multi2", "highdim"), 
       function(.setup){
         error_out <- map_dfr(
           unique(sim_res_al1brq$parameter$error) %>% setdiff("mixed"),
@@ -267,9 +330,9 @@ mse <-
                   
                   
                   if(.setup %in% c("multi", "multi2")){
-                    methods <- c("AL1BRQ", "L2BRQ", "RQ", "RQAic")
+                    methods <- c("QR-QR.Boost", "QR-LS.Boost", "RQ", "RQAic")
                   } else {
-                    methods <- c("AL1BRQ", "L2BRQ", "RQ")
+                    methods <- c("QR-QR.Boost", "QR-LS.Boost", "RQ")
                   }
                   
                   method_out <- map_dfr(
@@ -347,7 +410,7 @@ mse <-
                             
                             beta_ind <- .beta %>% stringr::str_extract("[:digit:]") %>% as.numeric()
                             
-                            if(.method == "AL1BRQ"){
+                            if(.method == "QR-QR.Boost"){
                               
                               
                               results <- 
@@ -380,7 +443,7 @@ mse <-
                               return(out) 
                             }
                             
-                            if(.method == "L2BRQ"){
+                            if(.method == "QR-LS.Boost"){
                               
                               results <- 
                                 sim_res_l2brq$output %>% 
@@ -507,15 +570,64 @@ mse <-
 
 mse_not_contaminated <- mse(.contaminated = FALSE)
 
+mse_not_contaminated %>% 
+  filter(`Error distribution` != "tdist_1") %>% 
+  group_by(`Parameter setup`, `Error distribution`, MSE) %>% 
+  mutate(
+    across(
+      .cols = c(`0.1`, `0.3`, `0.5`, `0.7`, `0.9`),
+      .fns = function(.x){
+        if_else(.x == min(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+      }
+    )
+  ) %>% 
+  ungroup() %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, `Error distribution`, MSE),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
+
 mse_contaminated <- mse(.contaminated = TRUE)
 
+mse_contaminated %>% 
+  filter(`Error distribution` != "tdist_1") %>% 
+  group_by(`Parameter setup`, `Error distribution`, MSE) %>% 
+  mutate(
+    across(
+      .cols = c(`0.1`, `0.3`, `0.5`, `0.7`, `0.9`),
+      .fns = function(.x){
+        if_else(.x == min(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+      }
+    )
+  ) %>% 
+  ungroup() %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, `Error distribution`, MSE),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
 
 ## Bias ------------------------------------------------------------------------
 
 bias <- 
   function(.contaminated){
     map_dfr(
-      unique(sim_res_al1brq$parameter$setup), 
+      c("hom", "het", "multi", "multi2", "highdim"), 
       function(.setup){
         error_out <- map_dfr(
           unique(sim_res_al1brq$parameter$error) %>% setdiff("mixed"),
@@ -551,9 +663,9 @@ bias <-
                   
                   
                   if(.setup %in% c("multi", "multi2")){
-                    methods <- c("AL1BRQ", "L2BRQ", "RQ", "RQAic")
+                    methods <- c("QR-QR.Boost", "QR-LS.Boost", "RQ", "RQAic")
                   } else {
-                    methods <- c("AL1BRQ", "L2BRQ", "RQ")
+                    methods <- c("QR-QR.Boost", "QR-LS.Boost", "RQ")
                   }
                   
                   method_out <- map_dfr(
@@ -631,7 +743,7 @@ bias <-
                             
                             beta_ind <- .beta %>% stringr::str_extract("[:digit:]") %>% as.numeric()
                             
-                            if(.method == "AL1BRQ"){
+                            if(.method == "QR-QR.Boost"){
                               
                               
                               results <- 
@@ -664,7 +776,7 @@ bias <-
                               return(out) 
                             }
                             
-                            if(.method == "L2BRQ"){
+                            if(.method == "QR-LS.Boost"){
                               
                               results <- 
                                 sim_res_l2brq$output %>% 
@@ -791,8 +903,57 @@ bias <-
 
 bias_not_contaminated <- bias(.contaminated = FALSE)
 
+bias_not_contaminated %>% 
+  filter(`Error distribution` != "tdist_1") %>% 
+  group_by(`Parameter setup`, `Error distribution`, Bias) %>% 
+  mutate(
+    across(
+      .cols = c(`0.1`, `0.3`, `0.5`, `0.7`, `0.9`),
+      .fns = function(.x){
+        if_else(abs(.x) == min(abs(.x)), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+      }
+    )
+  ) %>% 
+  ungroup() %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, `Error distribution`, Bias),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
+
 bias_contaminated <- bias(.contaminated = TRUE)
 
+bias_contaminated %>% 
+  filter(`Error distribution` != "tdist_1") %>% 
+  group_by(`Parameter setup`, `Error distribution`, Bias) %>% 
+  mutate(
+    across(
+      .cols = c(`0.1`, `0.3`, `0.5`, `0.7`, `0.9`),
+      .fns = function(.x){
+        if_else(abs(.x) == min(abs(.x)), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+      }
+    )
+  ) %>% 
+  ungroup() %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, `Error distribution`, Bias),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
 
 ## MPI -------------------------------------------------------------------------
 
@@ -813,7 +974,7 @@ mpi <-
                     
                     method_out <- 
                       map_dfr(
-                        c("AL1BRQ", "L2BRQ"), 
+                        c("QR-QR.Boost", "QR-LS.Boost"), 
                         function(.method){
                           
                           betas <- map_chr(
@@ -832,7 +993,7 @@ mpi <-
                                 
                                 beta_ind <- .beta %>% stringr::str_extract("[:digit:]") %>% as.numeric()
                                 
-                                if(.method == "AL1BRQ"){
+                                if(.method == "QR-QR.Boost"){
                                   
                                   results <- 
                                     sim_res_al1brq$output %>% 
@@ -862,7 +1023,7 @@ mpi <-
                                   return(out) 
                                 }
                                 
-                                if(.method == "L2BRQ"){
+                                if(.method == "QR-LS.Boost"){
                                   
                                   results <- 
                                     sim_res_l2brq$output %>% 
@@ -926,8 +1087,37 @@ mpi <-
 
 mpi_not_contaminated <- mpi(.contaminated = FALSE)
 
+mpi_not_contaminated %>% 
+  filter(!`Error distribution` %in% c("tdist_1", "mixed")) %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, tau, `Error distribution`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
+
 mpi_contaminated <- mpi(.contaminated = TRUE)
 
+mpi_contaminated %>% 
+  filter(!`Error distribution` %in% c("tdist_1", "mixed")) %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, tau, `Error distribution`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
 
 ## MFI -------------------------------------------------------------------------
 
@@ -948,7 +1138,7 @@ mfi <-
                     
                     method_out <- 
                       map_dfr(
-                        c("AL1BRQ", "L2BRQ"), 
+                        c("QR-QR.Boost", "QR-LS.Boost"), 
                         function(.method){
                           
                           betas <- map_chr(
@@ -967,7 +1157,7 @@ mfi <-
                                 
                                 beta_ind <- .beta %>% stringr::str_extract("[:digit:]") %>% as.numeric()
                                 
-                                if(.method == "AL1BRQ"){
+                                if(.method == "QR-QR.Boost"){
                                   
                                   results <- 
                                     sim_res_al1brq$output %>% 
@@ -1001,7 +1191,7 @@ mfi <-
                                   return(out) 
                                 }
                                 
-                                if(.method == "L2BRQ"){
+                                if(.method == "QR-LS.Boost"){
                                   
                                   results <- 
                                     sim_res_l2brq$output %>% 
@@ -1069,8 +1259,37 @@ mfi <-
 
 mfi_not_contaminated <- mfi(.contaminated = FALSE)
 
+mfi_not_contaminated %>% 
+  filter(!`Error distribution` %in% c("tdist_1", "mixed")) %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, tau, `Error distribution`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
+
 mfi_contaminated <- mfi(.contaminated = TRUE)
 
+mfi_contaminated %>% 
+  filter(!`Error distribution` %in% c("tdist_1", "mixed")) %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, tau, `Error distribution`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
 
 ## PER -------------------------------------------------------------------------
 
@@ -1091,7 +1310,7 @@ per <-
                     
                     method_out <- 
                       map_dfr(
-                        c("AL1BRQ", "L2BRQ", "RQAic"), 
+                        c("QR-QR.Boost", "QR-LS.Boost", "RQAic"), 
                         function(.method){
                           
                           betas <- map_chr(
@@ -1110,7 +1329,7 @@ per <-
                                 
                                 beta_ind <- .beta %>% stringr::str_extract("[:digit:]") %>% as.numeric()
                                 
-                                if(.method == "AL1BRQ"){
+                                if(.method == "QR-QR.Boost"){
                                   
                                   results <- 
                                     sim_res_al1brq$output %>% 
@@ -1142,7 +1361,7 @@ per <-
                                   return(out) 
                                 }
                                 
-                                if(.method == "L2BRQ"){
+                                if(.method == "QR-LS.Boost"){
                                   
                                   results <- 
                                     sim_res_l2brq$output %>% 
@@ -1240,8 +1459,191 @@ per <-
 
 per_not_contaminated <- per(.contaminated = FALSE)
 
+per_not_contaminated %>% 
+  filter(`Error distribution` != "tdist_1") %>% 
+  filter(`Parameter setup` == "multi") %>% 
+  group_by(`Parameter setup`, tau, `Error distribution`) %>% 
+  mutate(
+    across(
+      .cols = c(hatbeta_tau1, hatbeta_tau2, hatbeta_tau3, hatbeta_tau4),
+      .fns = function(.x){
+        if_else(.x == min(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+      }
+    )
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(hatbeta_tau5, hatbeta_tau6),
+      .fns = function(.x){
+        if_else(.x == max(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+      }
+    )
+  ) %>% 
+  ungroup() %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, tau, `Error distribution`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
+
+per_not_contaminated %>% 
+  filter(`Error distribution` != "tdist_1") %>% 
+  filter(`Parameter setup` == "multi2") %>% 
+  group_by(`Parameter setup`, tau, `Error distribution`) %>% 
+  mutate(
+    across(
+      .cols = c(hatbeta_tau1),
+      .fns = function(.x){
+        if_else(
+          tau >= 0.5,
+          if_else(.x == max(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3))),
+          if_else(.x == min(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+        )
+      }
+    )
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(hatbeta_tau3),
+      .fns = function(.x){
+        if_else(
+          tau <= 0.5,
+          if_else(.x == max(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3))),
+          if_else(.x == min(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+        )
+      }
+    )
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(hatbeta_tau2, hatbeta_tau4),
+      .fns = function(.x){
+        if_else(.x == min(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+      }
+    )
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(hatbeta_tau5, hatbeta_tau6),
+      .fns = function(.x){
+        if_else(.x == max(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+      }
+    )
+  ) %>% 
+  ungroup() %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, tau, `Error distribution`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
+
 per_contaminated <- per(.contaminated = TRUE)
 
+per_contaminated %>% 
+  filter(`Error distribution` != "tdist_1") %>% 
+  filter(`Parameter setup` == "multi") %>% 
+  group_by(`Parameter setup`, tau, `Error distribution`) %>% 
+  mutate(
+    across(
+      .cols = c(hatbeta_tau1, hatbeta_tau2, hatbeta_tau3, hatbeta_tau4),
+      .fns = function(.x){
+        if_else(.x == min(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+      }
+    )
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(hatbeta_tau5, hatbeta_tau6),
+      .fns = function(.x){
+        if_else(.x == max(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+      }
+    )
+  ) %>% 
+  ungroup() %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, tau, `Error distribution`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
+
+per_contaminated %>% 
+  filter(`Error distribution` != "tdist_1") %>% 
+  filter(`Parameter setup` == "multi2") %>% 
+  group_by(`Parameter setup`, tau, `Error distribution`) %>% 
+  mutate(
+    across(
+      .cols = c(hatbeta_tau1),
+      .fns = function(.x){
+        if_else(
+          tau >= 0.5,
+          if_else(.x == max(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3))),
+          if_else(.x == min(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+        )
+      }
+    )
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(hatbeta_tau3),
+      .fns = function(.x){
+        if_else(
+          tau <= 0.5,
+          if_else(.x == max(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3))),
+          if_else(.x == min(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+        )
+      }
+    )
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(hatbeta_tau2, hatbeta_tau4),
+      .fns = function(.x){
+        if_else(.x == min(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+      }
+    )
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(hatbeta_tau5, hatbeta_tau6),
+      .fns = function(.x){
+        if_else(.x == max(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+      }
+    )
+  ) %>% 
+  ungroup() %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, tau, `Error distribution`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
 
 ## True population parameters --------------------------------------------------
 
@@ -1351,7 +1753,7 @@ true_betas
 iterations <- 
   function(.contaminated){
     map_dfr(
-      unique(sim_res_al1brq$parameter$setup), 
+      c("hom", "het", "multi", "multi2", "highdim"), 
       function(.setup){
         
         error_out <- map_dfr(
@@ -1359,7 +1761,7 @@ iterations <-
           function(.error){
             
             method_out <- map_dfr(
-              c("AL1BRQ", "L2BRQ"),
+              c("QR-QR.Boost", "QR-LS.Boost"),
               function(.method){
                 
                 tau_out <- map_dfc(
@@ -1368,7 +1770,7 @@ iterations <-
                     
                     init_set <- 0
                     
-                    if(.method == "AL1BRQ"){
+                    if(.method == "QR-QR.Boost"){
                       
                       zbrq <- sim[[.setup]]$zbrq
                       
@@ -1402,7 +1804,7 @@ iterations <-
                       return(out) 
                     }
                     
-                    if(.method == "L2BRQ"){
+                    if(.method == "QR-LS.Boost"){
                       
                       zqb <- sim[[.setup]]$zqb
                       
@@ -1467,8 +1869,37 @@ iterations <-
 
 iterations_not_contaminated <- iterations(.contaminated = FALSE)
 
+iterations_not_contaminated %>% 
+  filter(`Error distr.` != "tdist_1") %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, `Error distr.`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
+
 iterations_contaminated <- iterations(.contaminated = TRUE)
 
+iterations_contaminated %>% 
+  filter(`Error distr.` != "tdist_1") %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, `Error distr.`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
 
 ## Sensitivity -----------------------------------------------------------------
 
@@ -1479,7 +1910,7 @@ sensitivity_highdim <-
       function(.error){
         
         method_out <- map_dfr(
-          c("AL1BRQ", "L2BRQ"),
+          c("QR-QR.Boost", "QR-LS.Boost"),
           function(.method){
             
             tau_out <- map_dfc(
@@ -1488,7 +1919,7 @@ sensitivity_highdim <-
                 
                 init_set <- 0
                 
-                if(.method == "AL1BRQ"){
+                if(.method == "QR-QR.Boost"){
                   
                   results <- 
                     sim_res_al1brq$output %>% 
@@ -1519,7 +1950,7 @@ sensitivity_highdim <-
                 }
                 
                 
-                if(.method == "L2BRQ"){
+                if(.method == "QR-LS.Boost"){
                   
                   results <- 
                     sim_res_l2brq$output %>% 
@@ -1572,8 +2003,57 @@ sensitivity_highdim <-
 
 sensitivity_highdim_not_contaminated <- sensitivity_highdim(.contaminated = FALSE)
 
+sensitivity_highdim_not_contaminated %>% 
+  filter(`Error distribution` != "tdist_1") %>% 
+  group_by(`Error distribution`) %>% 
+  mutate(
+    across(
+      .cols = c(`0.1`, `0.3`, `0.5`, `0.7`, `0.9`),
+      .fns = function(.x){
+        if_else(.x == max(.x), str_c("\\blue{", .x, "}"), as.character(.x))
+      }
+    )
+  ) %>% 
+  ungroup() %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>%
+  mutate(
+    across(
+      .cols = c(`Error distribution`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
+
 sensitivity_highdim_contaminated <- sensitivity_highdim(.contaminated = TRUE)
 
+sensitivity_highdim_contaminated %>% 
+  filter(`Error distribution` != "tdist_1") %>% 
+  group_by(`Error distribution`) %>% 
+  mutate(
+    across(
+      .cols = c(`0.1`, `0.3`, `0.5`, `0.7`, `0.9`),
+      .fns = function(.x){
+        if_else(.x == max(.x), str_c("\\blue{", .x, "}"), as.character(.x))
+      }
+    )
+  ) %>% 
+  ungroup() %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>%
+  mutate(
+    across(
+      .cols = c(`Error distribution`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
 
 ## Specificity -----------------------------------------------------------------
 
@@ -1584,7 +2064,7 @@ specificity_highdim <-
       function(.error){
         
         method_out <- map_dfr(
-          c("AL1BRQ", "L2BRQ"),
+          c("QR-QR.Boost", "QR-LS.Boost"),
           function(.method){
             
             tau_out <- map_dfc(
@@ -1593,7 +2073,7 @@ specificity_highdim <-
                 
                 init_set <- 0
                 
-                if(.method == "AL1BRQ"){
+                if(.method == "QR-QR.Boost"){
                   
                   results <- 
                     sim_res_al1brq$output %>% 
@@ -1624,7 +2104,7 @@ specificity_highdim <-
                 }
                 
                 
-                if(.method == "L2BRQ"){
+                if(.method == "QR-LS.Boost"){
                   
                   results <- 
                     sim_res_l2brq$output %>% 
@@ -1677,8 +2157,58 @@ specificity_highdim <-
 
 
 specificity_highdim_not_contaminated <- specificity_highdim(.contaminated = FALSE)
+
+specificity_highdim_not_contaminated %>% 
+  filter(`Error distribution` != "tdist_1") %>% 
+  group_by(`Error distribution`) %>% 
+  mutate(
+    across(
+      .cols = c(`0.1`, `0.3`, `0.5`, `0.7`, `0.9`),
+      .fns = function(.x){
+        if_else(.x == max(.x), str_c("\\blue{", .x, "}"), as.character(.x))
+      }
+    )
+  ) %>% 
+  ungroup() %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>%
+  mutate(
+    across(
+      .cols = c(`Error distribution`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
+
 specificity_highdim_contaminated <- specificity_highdim(.contaminated = TRUE)
 
+specificity_highdim_contaminated %>% 
+  filter(`Error distribution` != "tdist_1") %>% 
+  group_by(`Error distribution`) %>% 
+  mutate(
+    across(
+      .cols = c(`0.1`, `0.3`, `0.5`, `0.7`, `0.9`),
+      .fns = function(.x){
+        if_else(.x == max(.x), str_c("\\blue{", .x, "}"), as.character(.x))
+      }
+    )
+  ) %>% 
+  ungroup() %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>%
+  mutate(
+    across(
+      .cols = c(`Error distribution`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
 
 ## Tau-fit ---------------------------------------------------------------------
 
@@ -1688,16 +2218,16 @@ sim_sample_data_rq <- readRDS("simulation_output/rq_sample_data.RDS")
 tau_insample <- 
   function(.contaminated){
     map_dfr(
-      unique(sim_res_al1brq$parameter$setup), 
+      c("hom", "het", "multi", "multi2", "highdim"), 
       function(.setup){
         error_out <- map_dfr(
           unique(sim_res_al1brq$parameter$error),
           function(.error){
             
             if(.setup %in% c("multi", "multi2")){
-              methods <- c("AL1BRQ", "L2BRQ", "RQ", "RQAic")
+              methods <- c("QR-QR.Boost", "QR-LS.Boost", "RQ", "RQAic")
             } else {
-              methods <- c("AL1BRQ", "L2BRQ", "RQ")
+              methods <- c("QR-QR.Boost", "QR-LS.Boost", "RQ")
             }
             
             method_out <- map_dfr(
@@ -1709,7 +2239,7 @@ tau_insample <-
                     function(.tau){
                       init_set <- 0
                       
-                      if(.method == "AL1BRQ"){
+                      if(.method == "QR-QR.Boost"){
                         
                         sample_data <- 
                           sim_sample_data_boosting$output %>% 
@@ -1768,7 +2298,7 @@ tau_insample <-
                         return(out) 
                       }
                       
-                      if(.method == "L2BRQ"){
+                      if(.method == "QR-LS.Boost"){
                         
                         sample_data <- 
                           sim_sample_data_boosting$output %>% 
@@ -1966,4 +2496,55 @@ tau_insample <-
   }
 
 tau_insample_not_contaminated <- tau_insample(.contaminated = FALSE)
+
+tau_insample_not_contaminated %>% 
+  filter(`Error distribution` != "tdist_1") %>% 
+  group_by(`Parameter setup`, `Error distribution`) %>% 
+  mutate(
+    across(
+      .cols = c(`0.1`, `0.3`, `0.5`, `0.7`, `0.9`),
+      .fns = function(.x){
+        if_else(.x == max(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+      }
+    )
+  ) %>% 
+  ungroup() %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, `Error distribution`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
+
 tau_insample_contaminated <- tau_insample(.contaminated = TRUE)
+
+tau_insample_contaminated %>% 
+  filter(`Error distribution` != "tdist_1") %>% 
+  group_by(`Parameter setup`, `Error distribution`) %>% 
+  mutate(
+    across(
+      .cols = c(`0.1`, `0.3`, `0.5`, `0.7`, `0.9`),
+      .fns = function(.x){
+        if_else(.x == max(.x), str_c("\\blue{", format(.x, digits = 3, nsmall = 3), "}"), as.character(format(.x, digits = 3, nsmall = 3)))
+      }
+    )
+  ) %>% 
+  ungroup() %>% 
+  mutate(
+    across(where(is.factor), as.character)
+  ) %>% 
+  mutate(
+    across(
+      .cols = c(`Parameter setup`, `Error distribution`),
+      .fns = function(.x){
+        unfill_vec(.x)
+      }
+    )
+  ) %>% 
+  kbl("latex", escape = FALSE, linesep = "")
